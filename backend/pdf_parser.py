@@ -69,12 +69,12 @@ async def ai_preprocess_text(text: str) -> str:
         raise ValueError("empty_text")
 
     response = await _client.chat.completions.create(
-        model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+        model=os.environ.get("OPENAI_MODEL", "gpt-5.4-mini"),
         messages=[
             {"role": "system", "content": "你是一個 PDF 文字修復助手。你的任務是修復 pdfminer 擷取造成的文字亂序、斷行、表格錯位等問題。請還原正確的閱讀順序，修正斷字，重構表格結構。只輸出修復後的文字，不要加任何說明。"},
             {"role": "user", "content": text},
         ],
         temperature=0.1,
-        max_tokens=4096,
+        max_completion_tokens=4096,
     )
     return response.choices[0].message.content.strip()

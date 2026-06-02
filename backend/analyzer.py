@@ -63,9 +63,9 @@ async def validate_is_resume(text: str) -> tuple[bool, str]:
     if not text.strip():
         return (False, "文字為空")
 
-    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-    client = get_client()
-    response = await client.chat.completions.create(
+    model = os.environ.get("OPENAI_MODEL", "gpt-5.4-mini")
+
+    response = await _client.chat.completions.create(
         model=model,
         messages=[
             {
@@ -75,7 +75,7 @@ async def validate_is_resume(text: str) -> tuple[bool, str]:
             {"role": "user", "content": text[:3000]},
         ],
         response_format={"type": "json_object"},
-        max_tokens=200,
+        max_completion_tokens=200,
         temperature=0,
     )
     raw = response.choices[0].message.content or "{}"
@@ -95,7 +95,7 @@ async def stream_analysis(
 
     實作要點：
         - 有 jd_text 時加入 prompt（提升 ATS 分析精準度）
-        - 使用 os.environ.get("OPENAI_MODEL", "gpt-4o-mini")，temperature=0.3
+        - 使用 os.environ.get("OPENAI_MODEL", "gpt-5.4-mini")，temperature=0.3
         - stream=True 呼叫 OpenAI
         - Buffer 機制：累積 response chunks，按 '\\n' 切割
           有效 JSON 行（以 '{' 開頭）才 yield
@@ -110,7 +110,7 @@ async def stream_analysis(
     Yields:
         JSON 字串（每次一行）：dimension / done / error events
     """
-    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+    model = os.environ.get("OPENAI_MODEL", "gpt-5.4-mini")
     client = get_client()
 
     user_content = f"請分析以下履歷：\n\n{resume_text}"
