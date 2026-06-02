@@ -1234,35 +1234,17 @@ function deselectHistory() {
 }
 
 async function loadAnalysis(id) {
-  const debugEl = document.createElement('div');
-  debugEl.id = 'loadDebug';
-  debugEl.style.cssText = 'position:fixed;bottom:70px;left:0;right:0;background:#000;color:#0f0;padding:8px;font-size:12px;z-index:9999;max-height:200px;overflow:auto';
-  debugEl.textContent = 'loadAnalysis called id=' + id;
-  document.body.appendChild(debugEl);
-
-  if (!currentToken) { debugEl.textContent += ' | NO TOKEN'; return; }
-  debugEl.textContent += ' | token OK';
-
-  if (!resultsContainer) { debugEl.textContent += ' | resultsContainer NULL'; return; }
+  if (!currentToken) return;
   resultsContainer.innerHTML = '';
-  debugEl.textContent += ' | cleared RC';
-
   currentAnalysisId = id;
   deselectHistory();
   const item = document.querySelector('.history-item[data-id="' + id + '"]');
   if (item) item.classList.add('selected');
-  debugEl.textContent += ' | selected=' + (!!item);
 
   try {
-    debugEl.textContent += ' | fetching...';
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const resp = await fetch(API + '/api/analyses/' + id, {
-      headers: { Authorization: 'Bearer ' + currentToken },
-      signal: controller.signal,
+      headers: { Authorization: 'Bearer ' + currentToken }
     });
-    clearTimeout(timeoutId);
-    debugEl.textContent += ' | status=' + resp.status;
     if (!resp.ok) {
       const errBody = await resp.text().catch(()=>'');
       console.error('[loadAnalysis] HTTP', resp.status, errBody);
@@ -1278,7 +1260,6 @@ async function loadAnalysis(id) {
       return;
     }
     const data = await resp.json();
-    debugEl.textContent += ' | parsed dims=' + (Array.isArray(data.dimensions) ? data.dimensions.length : typeof data.dimensions);
 
     if (window.innerWidth < 640) {
       showMobileDetail(data);
@@ -1315,8 +1296,6 @@ async function loadAnalysis(id) {
     if (window.innerWidth >= 1024) return;
     toggleSidebar(false);
   } catch (e) {
-    const dbg = document.getElementById('loadDebug');
-    if (dbg) dbg.textContent += ' | ERROR: ' + (e.message || e);
     console.error('[loadAnalysis]', e);
     showError('載入分析記錄失敗: ' + (e.message || e));
   }
