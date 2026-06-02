@@ -711,33 +711,33 @@ main.main-content {
           </div>
           <div id="skeletonContainer"></div>
         </div>
+      </div>
 
-        <!-- Results Container -->
-        <div id="resultsSection" style="display:none">
-          <div id="resultsContainer"></div>
-        </div>
+      <!-- Results Container (outside desktopUpload so hiding upload doesn't hide results) -->
+      <div id="resultsSection" style="display:none">
+        <div id="resultsContainer"></div>
+      </div>
 
-        <!-- State 5: Limit Exhausted -->
-        <div id="limitError" style="display:none">
-          <div class="error-box">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-            <div>
-              <div style="font-weight:600;margin-bottom:0.25rem">本週已達 7 次使用上限</div>
-              <div style="font-size:0.85rem">請下週再試，你的使用次數將於每週一重置</div>
-            </div>
+      <!-- State 5: Limit Exhausted -->
+      <div id="limitError" style="display:none">
+        <div class="error-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <div>
+            <div style="font-weight:600;margin-bottom:0.25rem">本週已達 7 次使用上限</div>
+            <div style="font-size:0.85rem">請下週再試，你的使用次數將於每週一重置</div>
           </div>
         </div>
+      </div>
 
-        <!-- State 6: Non-Resume Error -->
-        <div id="parseError" style="display:none">
-          <div class="error-box" id="parseErrorMsg">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <div>
-              <div id="parseErrorText"></div>
-            </div>
+      <!-- State 6: Non-Resume Error -->
+      <div id="parseError" style="display:none">
+        <div class="error-box" id="parseErrorMsg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div>
+            <div id="parseErrorText"></div>
           </div>
-          <button class="retry-btn" onclick="clearParseError()">重新選擇檔案</button>
         </div>
+        <button class="retry-btn" onclick="clearParseError()">重新選擇檔案</button>
       </div>
 
       <!-- Mobile: Detail Page (rendered here) -->
@@ -1420,6 +1420,7 @@ function switchMobileTab(tab) {
   document.getElementById('bottomHistory').classList.toggle('active', tab === 'history');
   document.getElementById('mobilePageHistory').classList.toggle('active', tab === 'history');
   document.getElementById('desktopUpload').style.display = tab === 'upload' ? '' : 'none';
+  document.getElementById('resultsSection').style.display = 'none';
   document.getElementById('mobileDetail').style.display = 'none';
   if (tab === 'history') {
     renderMobileHistory();
