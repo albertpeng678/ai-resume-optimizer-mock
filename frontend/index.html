@@ -1227,8 +1227,8 @@ function deselectHistory() {
 }
 
 async function loadAnalysis(id) {
-  console.log('[loadAnalysis] id:', id, '| token:', !!currentToken);
   if (!currentToken) return;
+  if (currentAnalysisId === id && resultsContainer.children.length > 0) return;
   currentAnalysisId = id;
   deselectHistory();
   const item = document.querySelector('.history-item[data-id="' + id + '"]');
