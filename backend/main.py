@@ -197,6 +197,14 @@ async def analysis_delete(analysis_id: str, user_id: str = Depends(get_current_u
     except Exception:
         raise HTTPException(404, "分析記錄不存在")
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"伺服器錯誤：{type(exc).__name__}: {exc}", "trace": traceback.format_exc()},
+    )
+
 @app.post("/analyze")
 async def analyze(
     request: Request,
@@ -204,7 +212,10 @@ async def analyze(
     jd_text: str = Form(""),
     user_id: str = Depends(get_current_user),
 ):
-    content = await pdf_file.read()
+    try:
+        content = await pdf_file.read()
+    except Exception as e:
+        raise HTTPException(400, f"無法讀取檔案：{e}")
 
     try:
         resume_text = parse_resume(content)
@@ -227,7 +238,10 @@ async def analyze(
     except Exception:
         pass
 
-    cleaned_text = await ai_preprocess_text(resume_text)
+    try:
+        cleaned_text = await ai_preprocess_text(resume_text)
+    except Exception as e:
+        raise HTTPException(400, f"文字預處理失敗：{e}")
 
     event = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
