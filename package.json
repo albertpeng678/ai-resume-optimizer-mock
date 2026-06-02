@@ -1,0 +1,24 @@
+{
+  "name": "ai-resume-optimizer-mock",
+  "version": "1.0.0",
+  "description": "AI 驅動的履歷多維度優化分析工具。上傳 PDF 履歷，立即獲得 5 個維度的結構化建議。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github-personal:albertpeng678/ai-resume-optimizer-mock.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

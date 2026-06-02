@@ -30,11 +30,17 @@ pdf_parser_mod.parse_resume = mock_parse_resume
 # Add test-only reset endpoint for test isolation
 import backend.main as main_mod
 from fastapi import Response
+from backend.database import get_pool
 
 @main_mod.app.post("/__reset")
 async def reset_test_state():
-    main_mod._in_memory_analyses.clear()
-    main_mod._in_memory_usage.clear()
+    try:
+        pool = await get_pool()
+        async with pool.acquire() as conn:
+            await conn.execute("DELETE FROM analyses")
+            await conn.execute("DELETE FROM weekly_usage")
+    except Exception:
+        pass
     return Response(status_code=204)
 
 
