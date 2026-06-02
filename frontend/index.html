@@ -1227,26 +1227,21 @@ function deselectHistory() {
 }
 
 async function loadAnalysis(id) {
-  console.log('LA1', id);
-  if (!currentToken) { console.log('LAx: no token'); return; }
-  if (currentAnalysisId === id && resultsContainer.children.length > 0) { console.log('LAx: guard'); return; }
+  if (!currentToken) return;
+  if (currentAnalysisId === id && resultsContainer.children.length > 0) return;
   currentAnalysisId = id;
   deselectHistory();
   const item = document.querySelector('.history-item[data-id="' + id + '"]');
   if (item) item.classList.add('selected');
 
   try {
-    console.log('LA2: fetching');
     const resp = await fetch(API + '/api/analyses/' + id, {
       headers: { Authorization: 'Bearer ' + currentToken }
     });
-    console.log('LA3: status', resp.status);
-    if (!resp.ok) { console.log('LAx: not ok'); return; }
+    if (!resp.ok) return;
     const data = await resp.json();
-    console.log('LA4: dims', data.dimensions?.length);
 
     if (window.innerWidth < 640) {
-      console.log('LAx: mobile');
       showMobileDetail(data);
       return;
     }
@@ -1255,19 +1250,16 @@ async function loadAnalysis(id) {
     document.getElementById('mobileDetail').style.display = 'none';
     resultsSection.style.display = '';
     resultsContainer.innerHTML = '';
-    console.log('LA5: cleared');
     uploadZone.style.display = 'none';
     loadingSection.style.display = 'none';
     limitError.style.display = 'none';
     parseError.style.display = 'none';
 
     if (data.dimensions && data.dimensions.length > 0) {
-      console.log('LA6: adding cards');
       data.dimensions.forEach((dim, i) => {
         addDimensionCard(dim, i);
       });
     }
-    console.log('LA7: children', resultsContainer.children.length);
 
     const backBtn = document.createElement('div');
     backBtn.style.marginBottom = '1rem';
@@ -1285,6 +1277,7 @@ function loadAnalysisMobile(id) {
 
 function showMobileDetail(data) {
   document.getElementById('desktopUpload').style.display = 'none';
+  document.getElementById('mobilePageHistory')?.classList.remove('active');
   const detail = document.getElementById('mobileDetail');
   detail.style.display = '';
 
