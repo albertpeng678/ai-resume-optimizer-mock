@@ -895,6 +895,25 @@ function hideErrors() {
   if (e) e.remove();
 }
 
+/* ===== History: Event Delegation ===== */
+document.getElementById('historyList').addEventListener('click', e => {
+  const item = e.target.closest('.history-item');
+  if (!item) return;
+  if (e.target.closest('.delete-btn')) return;
+  loadAnalysis(item.dataset.id);
+});
+document.getElementById('mobileHistoryList').addEventListener('click', e => {
+  const item = e.target.closest('.history-item');
+  if (!item) return;
+  loadAnalysisMobile(item.dataset.id);
+});
+document.addEventListener('click', e => {
+  if (e.target.closest('.delete-btn')) {
+    const id = e.target.closest('.delete-btn').dataset.id;
+    if (id) deleteAnalysis(id);
+  }
+});
+
 /* ===== UI: Analyze ===== */
 analyzeBtn.addEventListener('click', uploadAndAnalyze);
 
@@ -1154,12 +1173,32 @@ function renderHistorySidebar() {
     const stars = renderSmallStars(item.avg_score || 0);
     const date = item.uploaded_at ? formatDate(item.uploaded_at) : '';
     const selected = currentAnalysisId === item.id ? ' selected' : '';
-    return '<div class="history-item' + selected + '" data-id="' + item.id + '" onclick="loadAnalysis(\'' + item.id + '\')">' +
+    return '<div class="history-item' + selected + '" data-id="' + item.id + '">' +
       '<div class="history-item-name">' + escapeHtml(item.filename || '未知檔案') + '</div>' +
       '<div class="history-item-meta">' +
         '<span>' + date + '</span>' +
         '<span class="history-item-stars">' + stars + '</span>' +
-        '<button class="delete-btn" onclick="event.stopPropagation();deleteAnalysis(\'' + item.id + '\')" title="刪除">刪除</button>' +
+        '<button class="delete-btn" data-id="' + item.id + '" title="刪除">刪除</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function renderMobileHistory() {
+  const container = document.getElementById('mobileHistoryList');
+  if (!historyCache || historyCache.length === 0) {
+    container.innerHTML = '<div class="history-empty">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+      '<div>尚無分析記錄</div></div>';
+    return;
+  }
+  container.innerHTML = historyCache.map(item => {
+    const stars = renderSmallStars(item.avg_score || 0);
+    const date = item.uploaded_at ? formatDate(item.uploaded_at) : '';
+    return '<div class="history-item" data-id="' + item.id + '">' +
+      '<div class="history-item-name">' + escapeHtml(item.filename || '未知檔案') + '</div>' +
+      '<div class="history-item-meta">' +
+        '<span>' + date + '</span>' +
+        '<span class="history-item-stars">' + stars + '</span>' +
       '</div></div>';
   }).join('');
 }
