@@ -1254,9 +1254,15 @@ async function loadAnalysis(id) {
   debugEl.textContent += ' | selected=' + (!!item);
 
   try {
+    debugEl.textContent += ' | fetching...';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const resp = await fetch(API + '/api/analyses/' + id, {
-      headers: { Authorization: 'Bearer ' + currentToken }
+      headers: { Authorization: 'Bearer ' + currentToken },
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+    debugEl.textContent += ' | status=' + resp.status;
     if (!resp.ok) {
       const errBody = await resp.text().catch(()=>'');
       console.error('[loadAnalysis] HTTP', resp.status, errBody);
@@ -1272,6 +1278,7 @@ async function loadAnalysis(id) {
       return;
     }
     const data = await resp.json();
+    debugEl.textContent += ' | parsed dims=' + (Array.isArray(data.dimensions) ? data.dimensions.length : typeof data.dimensions);
 
     if (window.innerWidth < 640) {
       showMobileDetail(data);
