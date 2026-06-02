@@ -900,6 +900,7 @@ document.getElementById('historyList').addEventListener('click', e => {
   const item = e.target.closest('.history-item');
   if (!item) return;
   if (e.target.closest('.delete-btn')) return;
+  console.log('[historyClick] firing for:', item.dataset.id);
   loadAnalysis(item.dataset.id);
 });
 document.getElementById('mobileHistoryList').addEventListener('click', e => {
@@ -1246,6 +1247,7 @@ function deselectHistory() {
 }
 
 async function loadAnalysis(id) {
+  console.log('[loadAnalysis] id:', id, '| token:', !!currentToken);
   if (!currentToken) return;
   currentAnalysisId = id;
   deselectHistory();
