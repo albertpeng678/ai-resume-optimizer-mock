@@ -674,7 +674,7 @@ main.main-content {
       </div>
       <div class="nav-right">
         <div class="nav-usage">
-          使用 <span class="count" id="navUsage">7</span>/7
+          使用 <span class="count" id="navUsage">7</span>/<span id="usageMax">7</span>
         </div>
         <span class="nav-email" id="navEmail"></span>
         <button class="nav-logout" onclick="logout()">登出</button>
@@ -784,6 +784,7 @@ const DIM_NAMES = {
 let currentToken = localStorage.getItem('token');
 let currentFile = null;
 let currentUsage = 7;
+let usageMax = 7;
 let currentAnalysisId = null;
 let historyCache = [];
 let userEmail = '';
@@ -816,6 +817,8 @@ async function checkAuth() {
     if (!resp.ok) { showAuth(); return; }
     const data = await resp.json();
     userEmail = data.email || data.name || '';
+    if (data.usage !== undefined) currentUsage = data.usage;
+    if (data.usage_max !== undefined) usageMax = data.usage_max;
     showApp();
     loadHistory();
   } catch { showAuth(); }
@@ -1346,6 +1349,8 @@ function switchMobileTab(tab) {
 function updateUsage() {
   document.getElementById('sidebarUsage').textContent = currentUsage;
   document.getElementById('navUsage').textContent = currentUsage;
+  const el = document.getElementById('usageMax');
+  if (el) el.textContent = usageMax;
 }
 
 /* ===== Helpers ===== */

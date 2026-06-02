@@ -28,8 +28,6 @@ ERROR_MESSAGES: dict[str, str] = {
 }
 
 _metrics: list[dict] = []
-_in_memory_analyses: dict[str, list] = {}
-_in_memory_usage: dict[str, int] = {}
 _sessions: dict[str, dict] = {}
 
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
@@ -48,11 +46,8 @@ async def get_current_user(request: Request) -> str:
 async def lifespan(app: FastAPI):
     if not os.environ.get("OPENAI_API_KEY"):
         raise RuntimeError("OPENAI_API_KEY 未設定")
-    try:
-        pool = await get_pool()
-        await init_db(pool)
-    except Exception:
-        pass
+    pool = await get_pool()
+    await init_db(pool)
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -60,11 +55,14 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/auth/login")
 async def auth_login(request: Request):
     if not GOOGLE_CLIENT_ID:
-        html = """<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#f8fafc">
+        import secrets as _secrets
+        dev_token = _secrets.token_urlsafe(16)
+        _sessions[dev_token] = {"email": "dev@example.com", "name": "開發者"}
+        html = f"""<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#f8fafc">
 <div style="text-align:center"><h2>Google OAuth 未設定</h2><p>請在 Railway Variables 設定 GOOGLE_CLIENT_ID 與 GOOGLE_CLIENT_SECRET</p>
-<button onclick="localStorage.setItem('token','dev-token');window.location.href='/'"
+<button onclick="localStorage.setItem('token','{dev_token}');window.location.href='/'"
   style="padding:12px 32px;font-size:16px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:16px">
-開發模式（跳過登入）</button></div></body></html>"""
+ 直接使用（跳過登入）</button></div></body></html>"""
         return HTMLResponse(content=html)
     # Railway terminates SSL at proxy, so request.base_url is http://
     # Force HTTPS for Google OAuth redirect URI
@@ -126,7 +124,16 @@ async def auth_me(request: Request):
     session = _sessions.get(token)
     if not session:
         raise HTTPException(401, "Invalid token")
-    return {"email": session["email"], "name": session.get("name", session["email"])}
+    user_email = session["email"]
+    pool = await get_pool()
+    usage = await get_weekly_usage(pool, user_email)
+    remaining = max(0, 7 - usage)
+    return {
+        "email": user_email,
+        "name": session.get("name", user_email),
+        "usage": remaining,
+        "usage_max": 7,
+    }
 
 @app.get("/health")
 async def health():
@@ -146,24 +153,20 @@ async def index():
 
 @app.get("/api/analyses")
 async def analyses_list(user_id: str = Depends(get_current_user)):
-    try:
-        pool = await get_pool()
-        rows = await get_analyses(pool, user_id)
-        result = []
-        for row in rows:
-            dims = row["dimensions"]
-            scores = [d.get("score", 0) for d in dims]
-            avg = sum(scores) / len(scores) if scores else 0
-            result.append({
-                "id": str(row["id"]),
-                "filename": row["filename"],
-                "uploaded_at": row["uploaded_at"].isoformat(),
-                "avg_score": round(avg, 1),
-            })
-        return result
-    except Exception:
-        items = _in_memory_analyses.get(user_id, [])
-        return items
+    pool = await get_pool()
+    rows = await get_analyses(pool, user_id)
+    result = []
+    for row in rows:
+        dims = row["dimensions"]
+        scores = [d.get("score", 0) for d in dims]
+        avg = sum(scores) / len(scores) if scores else 0
+        result.append({
+            "id": str(row["id"]),
+            "filename": row["filename"],
+            "uploaded_at": row["uploaded_at"].isoformat(),
+            "avg_score": round(avg, 1),
+        })
+    return result
 
 @app.get("/api/analyses/{analysis_id}")
 async def analysis_detail(analysis_id: str, user_id: str = Depends(get_current_user)):
@@ -228,15 +231,10 @@ async def analyze(
     if not is_resume:
         raise HTTPException(400, f"這看起來不是一份履歷。{reason}")
 
-    try:
-        pool = await get_pool()
-        usage = await get_weekly_usage(pool, user_id)
-        if usage >= 7:
-            raise HTTPException(429, "本週已達 7 次使用上限")
-    except HTTPException:
-        raise
-    except Exception:
-        pass
+    pool = await get_pool()
+    usage = await get_weekly_usage(pool, user_id)
+    if usage >= 7:
+        raise HTTPException(429, "本週已達 7 次使用上限")
 
     try:
         cleaned_text = await ai_preprocess_text(resume_text)
@@ -268,26 +266,14 @@ async def analyze(
                 if parsed.get("type") == "done":
                     event["completed"] = True
                     dims = [{"name": k, "score": v} for k, v in event["dimensions"].items()]
-                    try:
-                        pool = await get_pool()
-                        await increment_weekly_usage(pool, user_id)
-                        await create_analysis(
-                            pool, user_id,
-                            pdf_file.filename or "resume.pdf",
-                            len(content),
-                            dims,
-                        )
-                    except Exception:
-                        import uuid
-                        from datetime import datetime
-                        avg = sum(d.get("score", 0) for d in dims) / len(dims) if dims else 0
-                        entry = _in_memory_analyses.setdefault(user_id, [])
-                        entry.insert(0, {
-                            "id": str(uuid.uuid4()),
-                            "filename": pdf_file.filename or "resume.pdf",
-                            "uploaded_at": datetime.now().isoformat(),
-                            "avg_score": round(avg, 1),
-                        })
+                    pool = await get_pool()
+                    await increment_weekly_usage(pool, user_id)
+                    await create_analysis(
+                        pool, user_id,
+                        pdf_file.filename or "resume.pdf",
+                        len(content),
+                        dims,
+                    )
                 yield f"data: {data}\n\n"
         finally:
             _metrics.append(event)
