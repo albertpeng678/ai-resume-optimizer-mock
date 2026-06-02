@@ -14,3 +14,6 @@ reference-resume-analyzer.png
 node_modules/
 .vscode/
 .idea/
+1-before-click.png
+2-after-first-click.png
+3-after-second-click.png

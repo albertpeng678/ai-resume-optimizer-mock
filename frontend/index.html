@@ -1308,8 +1308,11 @@ function showMobileDetail(data) {
     '<div class="mobile-page-title">' + escapeHtml(data.filename || '分析詳情') + '</div>' +
   '</div>';
 
-  if (data.dimensions && data.dimensions.length > 0) {
-    data.dimensions.forEach((dim, i) => {
+  const dims = data.dimensions;
+  console.log('[showMobileDetail] dims type:', typeof dims, 'isArray:', Array.isArray(dims), 'count:', Array.isArray(dims) ? dims.length : 0);
+
+  if (Array.isArray(dims) && dims.length > 0) {
+    dims.forEach((dim, i) => {
       const chineseName = DIM_NAMES[dim.name] || dim.name;
       const starsHtml = renderStars(dim.score);
       html += '<div class="dim-card" style="opacity:1;transform:none;animation:none">' +
@@ -1339,6 +1342,9 @@ function showMobileDetail(data) {
 
       html += '</div></div>';
     });
+  } else {
+    const rawInfo = dims === null ? 'null' : dims === undefined ? 'undefined' : JSON.stringify(dims).substring(0, 300);
+    html += '<div style="padding:1rem;background:#fff3cd;border-radius:8px;font-size:0.85rem;color:#856404">dimensions: ' + escapeHtml(rawInfo) + '</div>';
   }
 
   detail.innerHTML = html;
