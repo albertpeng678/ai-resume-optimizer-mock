@@ -46,7 +46,17 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/auth/login")
 async def auth_login():
-    return RedirectResponse(url="/?token=mock-token")
+    return RedirectResponse(url="/auth/callback?token=mock-token")
+
+@app.get("/auth/callback")
+async def auth_callback(token: str = ""):
+    if not token:
+        raise HTTPException(400, "Missing token")
+    html = f"""<html><body><script>
+localStorage.setItem('token', '{token}');
+window.location.href = '/';
+</script></body></html>"""
+    return HTMLResponse(content=html)
 
 @app.get("/auth/me")
 async def auth_me(request: Request):
