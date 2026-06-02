@@ -906,6 +906,7 @@ async function uploadAndAnalyze() {
   analyzeBtn.textContent = '分析中...';
   uploadZone.style.display = 'none';
   resultsSection.style.display = 'none';
+  resultsContainer.innerHTML = '';
   limitError.style.display = 'none';
   parseError.style.display = 'none';
   hideErrors();
@@ -1006,6 +1007,7 @@ function showUpload() {
   uploadZone.style.display = '';
   loadingSection.style.display = 'none';
   resultsSection.style.display = 'none';
+  resultsContainer.innerHTML = '';
   limitError.style.display = 'none';
   parseError.style.display = 'none';
   currentAnalysisId = null;
