@@ -262,10 +262,12 @@ async def analyze(
                     yield f"data: {data}\n\n"
                     continue
                 if parsed.get("type") == "dimension":
-                    event["dimensions"][parsed["name"]] = parsed.get("score")
+                    d = dict(parsed)
+                    d.pop("type", None)
+                    event["dimensions"][parsed["name"]] = d
                 if parsed.get("type") == "done":
                     event["completed"] = True
-                    dims = [{"name": k, "score": v} for k, v in event["dimensions"].items()]
+                    dims = list(event["dimensions"].values())
                     try:
                         pool = await get_pool()
                         await increment_weekly_usage(pool, user_id)
