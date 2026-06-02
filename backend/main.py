@@ -66,7 +66,13 @@ async def auth_login(request: Request):
   style="padding:12px 32px;font-size:16px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:16px">
 開發模式（跳過登入）</button></div></body></html>"""
         return HTMLResponse(content=html)
-    redirect_uri = str(request.base_url) + "auth/callback"
+    # Railway terminates SSL at proxy, so request.base_url is http://
+    # Force HTTPS for Google OAuth redirect URI
+    base = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+    if base:
+        redirect_uri = f"https://{base}/auth/callback"
+    else:
+        redirect_uri = str(request.base_url).replace("http://", "https://") + "auth/callback"
     params = urllib.parse.urlencode({
         "client_id": GOOGLE_CLIENT_ID,
         "redirect_uri": redirect_uri,
@@ -82,7 +88,11 @@ async def auth_callback(request: Request, code: str = "", error: str = ""):
         return HTMLResponse(f"<html><body>OAuth 錯誤：{error}</body></html>")
     if not code:
         raise HTTPException(400, "缺少授權碼")
-    redirect_uri = str(request.base_url) + "auth/callback"
+    base = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
+    if base:
+        redirect_uri = f"https://{base}/auth/callback"
+    else:
+        redirect_uri = str(request.base_url).replace("http://", "https://") + "auth/callback"
     async with httpx.AsyncClient() as client:
         token_resp = await client.post("https://oauth2.googleapis.com/token", data={
             "code": code,
