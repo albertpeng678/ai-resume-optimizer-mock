@@ -276,8 +276,7 @@ async def analyze(
                             dims,
                         )
                     except Exception as e:
-                        import traceback
-                        print(f"[SAVE ERROR] {e}\n{traceback.format_exc()}")
+                        yield f"data: {json.dumps({'type':'error','code':'save_error','message':str(e)})}\n\n"
                 yield f"data: {data}\n\n"
         finally:
             _metrics.append(event)
