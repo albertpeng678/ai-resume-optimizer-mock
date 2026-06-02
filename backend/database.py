@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import asyncpg
 from datetime import date, datetime, timedelta, timezone
@@ -49,7 +50,6 @@ async def init_db(pool: asyncpg.Pool):
     """)
 
 async def create_analysis(pool: asyncpg.Pool, user_id: str, filename: str, file_size: int, dimensions: list) -> UUID:
-    import json
     row = await pool.fetchrow(
         "INSERT INTO analyses (user_id, filename, file_size, dimensions) VALUES ($1, $2, $3, $4::jsonb) RETURNING id",
         user_id, filename, file_size, json.dumps(dimensions),
@@ -61,14 +61,25 @@ async def get_analyses(pool: asyncpg.Pool, user_id: str, limit: int = 20, offset
         "SELECT id, filename, uploaded_at, dimensions FROM analyses WHERE user_id=$1 ORDER BY uploaded_at DESC LIMIT $2 OFFSET $3",
         user_id, limit, offset,
     )
-    return [dict(r) for r in rows]
+    result = []
+    for r in rows:
+        d = dict(r)
+        if isinstance(d["dimensions"], str):
+            d["dimensions"] = json.loads(d["dimensions"])
+        result.append(d)
+    return result
 
 async def get_analysis(pool: asyncpg.Pool, analysis_id: str) -> Optional[dict]:
     row = await pool.fetchrow(
         "SELECT * FROM analyses WHERE id=$1::uuid",
         analysis_id,
     )
-    return dict(row) if row else None
+    if not row:
+        return None
+    d = dict(row)
+    if isinstance(d["dimensions"], str):
+        d["dimensions"] = json.loads(d["dimensions"])
+    return d
 
 async def delete_analysis(pool: asyncpg.Pool, analysis_id: str, user_id: str) -> bool:
     result = await pool.execute(
