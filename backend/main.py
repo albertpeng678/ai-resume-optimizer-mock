@@ -1,8 +1,11 @@
 import json
 import os
+import secrets
+import urllib.parse
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.sse import EventSourceResponse
@@ -27,8 +30,18 @@ ERROR_MESSAGES: dict[str, str] = {
 _metrics: list[dict] = []
 _in_memory_analyses: dict[str, list] = {}
 _in_memory_usage: dict[str, int] = {}
+_sessions: dict[str, dict] = {}
+
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 
 async def get_current_user(request: Request) -> str:
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        token = auth.removeprefix("Bearer ")
+        session = _sessions.get(token)
+        if session:
+            return session["email"]
     return "test-user-id"
 
 @asynccontextmanager
@@ -45,22 +58,65 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 @app.get("/auth/login")
-async def auth_login():
-    html = """<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#f8fafc">
-<div style="text-align:center">
-<h2>Mock Login</h2>
-<button onclick="localStorage.setItem('token','mock-token');window.location.href='/'" style="padding:12px 32px;font-size:16px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer">
-  以 user@example.com 登入
-</button>
-</div></body></html>"""
-    return HTMLResponse(content=html)
+async def auth_login(request: Request):
+    if not GOOGLE_CLIENT_ID:
+        html = """<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#f8fafc">
+<div style="text-align:center"><h2>Google OAuth 未設定</h2><p>請在 Railway Variables 設定 GOOGLE_CLIENT_ID 與 GOOGLE_CLIENT_SECRET</p>
+<button onclick="localStorage.setItem('token','dev-token');window.location.href='/'"
+  style="padding:12px 32px;font-size:16px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:16px">
+開發模式（跳過登入）</button></div></body></html>"""
+        return HTMLResponse(content=html)
+    redirect_uri = str(request.base_url) + "auth/callback"
+    params = urllib.parse.urlencode({
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+    })
+    return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
+
+@app.get("/auth/callback")
+async def auth_callback(request: Request, code: str = "", error: str = ""):
+    if error:
+        return HTMLResponse(f"<html><body>OAuth 錯誤：{error}</body></html>")
+    if not code:
+        raise HTTPException(400, "缺少授權碼")
+    redirect_uri = str(request.base_url) + "auth/callback"
+    async with httpx.AsyncClient() as client:
+        token_resp = await client.post("https://oauth2.googleapis.com/token", data={
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        })
+        if token_resp.status_code != 200:
+            raise HTTPException(400, "Token 交換失敗")
+        tokens = token_resp.json()
+        user_resp = await client.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {tokens['access_token']}"},
+        )
+        if user_resp.status_code != 200:
+            raise HTTPException(400, "無法取得使用者資訊")
+        user_info = user_resp.json()
+    email = user_info.get("email", "unknown@example.com")
+    name = user_info.get("name", email)
+    session_token = secrets.token_urlsafe(32)
+    _sessions[session_token] = {"email": email, "name": name}
+    return RedirectResponse(url=f"/?token={session_token}")
 
 @app.get("/auth/me")
 async def auth_me(request: Request):
     auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        return {"email": "user@example.com", "name": "User"}
-    raise HTTPException(401, "Unauthorized")
+    if not auth.startswith("Bearer "):
+        raise HTTPException(401, "Unauthorized")
+    token = auth.removeprefix("Bearer ")
+    session = _sessions.get(token)
+    if not session:
+        raise HTTPException(401, "Invalid token")
+    return {"email": session["email"], "name": session.get("name", session["email"])}
 
 @app.get("/health")
 async def health():
