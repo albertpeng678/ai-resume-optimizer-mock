@@ -266,14 +266,18 @@ async def analyze(
                 if parsed.get("type") == "done":
                     event["completed"] = True
                     dims = [{"name": k, "score": v} for k, v in event["dimensions"].items()]
-                    pool = await get_pool()
-                    await increment_weekly_usage(pool, user_id)
-                    await create_analysis(
-                        pool, user_id,
-                        pdf_file.filename or "resume.pdf",
-                        len(content),
-                        dims,
-                    )
+                    try:
+                        pool = await get_pool()
+                        await increment_weekly_usage(pool, user_id)
+                        await create_analysis(
+                            pool, user_id,
+                            pdf_file.filename or "resume.pdf",
+                            len(content),
+                            dims,
+                        )
+                    except Exception as e:
+                        import traceback
+                        print(f"[SAVE ERROR] {e}\n{traceback.format_exc()}")
                 yield f"data: {data}\n\n"
         finally:
             _metrics.append(event)
