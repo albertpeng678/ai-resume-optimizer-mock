@@ -1230,7 +1230,7 @@ function deselectHistory() {
 
 async function loadAnalysis(id) {
   if (!currentToken) return;
-  resultsContainer.innerHTML = '';
+  if (currentAnalysisId === id && resultsContainer.children.length > 0) return;
   currentAnalysisId = id;
   deselectHistory();
   const item = document.querySelector('.history-item[data-id="' + id + '"]');
