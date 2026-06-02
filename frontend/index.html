@@ -806,6 +806,7 @@ function getTokenFromUrl() {
   }
   return null;
 }
+console.log('[auth] currentToken:', currentToken, 'url:', window.location.href);
 async function checkAuth() {
   const urlToken = getTokenFromUrl();
   if (urlToken) currentToken = urlToken;

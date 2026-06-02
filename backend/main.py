@@ -46,16 +46,13 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/auth/login")
 async def auth_login():
-    return RedirectResponse(url="/auth/callback?token=mock-token")
-
-@app.get("/auth/callback")
-async def auth_callback(token: str = ""):
-    if not token:
-        raise HTTPException(400, "Missing token")
-    html = f"""<html><body><script>
-localStorage.setItem('token', '{token}');
-window.location.href = '/';
-</script></body></html>"""
+    html = """<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#f8fafc">
+<div style="text-align:center">
+<h2>Mock Login</h2>
+<button onclick="localStorage.setItem('token','mock-token');window.location.href='/'" style="padding:12px 32px;font-size:16px;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer">
+  以 user@example.com 登入
+</button>
+</div></body></html>"""
     return HTMLResponse(content=html)
 
 @app.get("/auth/me")
