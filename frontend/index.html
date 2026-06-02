@@ -890,7 +890,12 @@ function showError(msg) {
   box.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div>' + escapeHtml(msg) + '</div>';
   const existing = document.getElementById('tempError');
   if (existing) existing.remove();
-  uploadZone.parentElement.insertBefore(box, uploadZone);
+  const target = uploadZone?.parentElement || resultsSection;
+  if (target && target.parentElement) {
+    target.parentElement.insertBefore(box, target);
+  } else {
+    document.getElementById('mainContent')?.prepend(box);
+  }
 }
 function hideErrors() {
   const e = document.getElementById('tempError');
@@ -1229,12 +1234,24 @@ function deselectHistory() {
 }
 
 async function loadAnalysis(id) {
-  if (!currentToken) return;
+  const debugEl = document.createElement('div');
+  debugEl.id = 'loadDebug';
+  debugEl.style.cssText = 'position:fixed;bottom:70px;left:0;right:0;background:#000;color:#0f0;padding:8px;font-size:12px;z-index:9999;max-height:200px;overflow:auto';
+  debugEl.textContent = 'loadAnalysis called id=' + id;
+  document.body.appendChild(debugEl);
+
+  if (!currentToken) { debugEl.textContent += ' | NO TOKEN'; return; }
+  debugEl.textContent += ' | token OK';
+
+  if (!resultsContainer) { debugEl.textContent += ' | resultsContainer NULL'; return; }
   resultsContainer.innerHTML = '';
+  debugEl.textContent += ' | cleared RC';
+
   currentAnalysisId = id;
   deselectHistory();
   const item = document.querySelector('.history-item[data-id="' + id + '"]');
   if (item) item.classList.add('selected');
+  debugEl.textContent += ' | selected=' + (!!item);
 
   try {
     const resp = await fetch(API + '/api/analyses/' + id, {
@@ -1290,7 +1307,12 @@ async function loadAnalysis(id) {
 
     if (window.innerWidth >= 1024) return;
     toggleSidebar(false);
-  } catch (e) { console.error('[loadAnalysis]', e); showError('載入分析記錄失敗'); }
+  } catch (e) {
+    const dbg = document.getElementById('loadDebug');
+    if (dbg) dbg.textContent += ' | ERROR: ' + (e.message || e);
+    console.error('[loadAnalysis]', e);
+    showError('載入分析記錄失敗: ' + (e.message || e));
+  }
 }
 
 function loadAnalysisMobile(id) {
