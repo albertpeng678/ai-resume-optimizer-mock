@@ -1152,12 +1152,12 @@ function renderHistorySidebar() {
     const stars = renderSmallStars(item.avg_score || 0);
     const date = item.uploaded_at ? formatDate(item.uploaded_at) : '';
     const selected = currentAnalysisId === item.id ? ' selected' : '';
-    return '<div class="history-item' + selected + '" data-id="' + item.id + '" onclick="loadAnalysis(' + item.id + ')">' +
+    return '<div class="history-item' + selected + '" data-id="' + item.id + '" onclick="loadAnalysis(\'' + item.id + '\')">' +
       '<div class="history-item-name">' + escapeHtml(item.filename || '未知檔案') + '</div>' +
       '<div class="history-item-meta">' +
         '<span>' + date + '</span>' +
         '<span class="history-item-stars">' + stars + '</span>' +
-        '<button class="delete-btn" onclick="event.stopPropagation();deleteAnalysis(' + item.id + ')" title="刪除">刪除</button>' +
+        '<button class="delete-btn" onclick="event.stopPropagation();deleteAnalysis(\'' + item.id + '\')" title="刪除">刪除</button>' +
       '</div></div>';
   }).join('');
 }
@@ -1173,7 +1173,7 @@ function renderMobileHistory() {
   container.innerHTML = historyCache.map(item => {
     const stars = renderSmallStars(item.avg_score || 0);
     const date = item.uploaded_at ? formatDate(item.uploaded_at) : '';
-    return '<div class="history-item" data-id="' + item.id + '" onclick="loadAnalysisMobile(' + item.id + ')">' +
+    return '<div class="history-item" data-id="' + item.id + '" onclick="loadAnalysisMobile(\'' + item.id + '\')">' +
       '<div class="history-item-name">' + escapeHtml(item.filename || '未知檔案') + '</div>' +
       '<div class="history-item-meta">' +
         '<span>' + date + '</span>' +
