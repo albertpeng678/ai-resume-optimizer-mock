@@ -1245,7 +1245,7 @@ async function loadAnalysis(id) {
 
     if (window.innerWidth >= 1024) return;
     toggleSidebar(false);
-  } catch {}
+  } catch (e) { console.error('[loadAnalysis]', e); showError('載入分析記錄失敗'); }
 }
 
 function loadAnalysisMobile(id) {
