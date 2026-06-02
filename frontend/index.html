@@ -1270,10 +1270,17 @@ async function loadAnalysis(id) {
     limitError.style.display = 'none';
     parseError.style.display = 'none';
 
-    if (data.dimensions && data.dimensions.length > 0) {
-      data.dimensions.forEach((dim, i) => {
-        addDimensionCard(dim, i);
-      });
+    const dims = data.dimensions;
+    const dimCount = Array.isArray(dims) ? dims.length : (dims ? typeof dims : 0);
+    console.log('[loadAnalysis] dims type:', typeof dims, 'isArray:', Array.isArray(dims), 'count:', dimCount, 'raw:', JSON.stringify(dims).substring(0,200));
+
+    if (Array.isArray(dims) && dims.length > 0) {
+      dims.forEach((dim, i) => { addDimensionCard(dim, i); });
+    } else {
+      const info = document.createElement('div');
+      info.style.cssText = 'padding:1rem;background:#fff3cd;border-radius:8px;margin-bottom:1rem;font-size:0.85rem;color:#856404';
+      info.textContent = 'dimensions: ' + (dims === null ? 'null' : dims === undefined ? 'undefined' : JSON.stringify(dims).substring(0, 300));
+      resultsContainer.appendChild(info);
     }
 
     const backBtn = document.createElement('div');
