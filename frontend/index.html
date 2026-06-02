@@ -1240,7 +1240,20 @@ async function loadAnalysis(id) {
     const resp = await fetch(API + '/api/analyses/' + id, {
       headers: { Authorization: 'Bearer ' + currentToken }
     });
-    if (!resp.ok) return;
+    if (!resp.ok) {
+      const errBody = await resp.text().catch(()=>'');
+      console.error('[loadAnalysis] HTTP', resp.status, errBody);
+      if (window.innerWidth < 640) {
+        document.getElementById('desktopUpload').style.display = 'none';
+        document.getElementById('mobilePageHistory')?.classList.remove('active');
+        const detail = document.getElementById('mobileDetail');
+        detail.style.display = '';
+        detail.innerHTML = '<div class="mobile-page-header"><button class="mobile-back" onclick="closeMobileDetail()">&#8592;</button><div class="mobile-page-title">錯誤</div></div><div class="error-box"><div>載入分析記錄失敗 (' + resp.status + ')</div></div>';
+      } else {
+        showError('載入分析記錄失敗 (' + resp.status + ')');
+      }
+      return;
+    }
     const data = await resp.json();
 
     if (window.innerWidth < 640) {
