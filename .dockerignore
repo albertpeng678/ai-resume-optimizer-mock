@@ -1,0 +1,14 @@
+.git
+.github
+.env*
+.pytest_cache
+__pycache__
+*.pyc
+*.log
+tests/
+docs/
+.vscode/
+.idea/
+*.md
+reference-resume-analyzer.png
+screenshots/

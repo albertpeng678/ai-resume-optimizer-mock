@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 履歷分析</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #0b1120;
+  --accent: #3b82f6;
+  --bg: #f4f7fa;
+  --surface: #ffffff;
+  --dark-surface: #1e293b;
+  --sidebar-bg: #0f172a;
+  --muted: #94a3b8;
+  --error: #dc2626;
+  --success-bg: #f0fdf4;
+  --border: #e2e8f0;
+  --star-gold: #f59e0b;
+  --radius: 12px;
+  --radius-btn: 8px;
+  --radius-input: 6px;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-elevated: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.05);
+  --shadow-modal: 0 25px 50px -12px rgba(0,0,0,0.12);
+  --nav-height: 56px;
+  --sidebar-width: 240px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans TC', 'Plus Jakarta Sans', sans-serif;
+  background: var(--bg);
+  color: var(--primary);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+input, button, textarea { font-family: inherit; }
+a { color: var(--accent); text-decoration: none; }
+
+/* ─── Auth Screen ─── */
+.auth-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  background: var(--bg);
+}
+.auth-content { text-align: center; max-width: 400px; }
+.auth-content h1 {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.75rem;
+}
+.auth-content p {
+  color: var(--muted);
+  font-size: 1rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+.google-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 2rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.google-btn:hover { background: #2563eb; transform: translateY(-1px); }
+.google-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+/* ─── App Layout ─── */
+.app { display: flex; min-height: 100vh; }
+.main-wrapper {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: var(--sidebar-bg);
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+  overflow-y: auto;
+}
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.sidebar-brand {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+}
+.sidebar-close {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+.upload-new-btn {
+  margin: 1rem 1.25rem;
+  padding: 0.6rem 1rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.upload-new-btn:hover { background: #2563eb; }
+.sidebar-section-label {
+  padding: 0.5rem 1.25rem 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  opacity: 0.6;
+}
+.sidebar-history {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.25rem 0;
+}
+.history-empty {
+  padding: 2rem 1.25rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.history-empty svg {
+  width: 32px; height: 32px;
+  color: var(--muted);
+  opacity: 0.3;
+  margin-bottom: 0.5rem;
+}
+.history-item {
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
+}
+.history-item:hover { background: rgba(255,255,255,0.04); }
+.history-item.selected { background: rgba(255,255,255,0.08); border-left-color: var(--accent); }
+.history-item-name {
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.15rem;
+}
+.history-item-meta {
+  font-size: 0.7rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.history-item-stars {
+  display: inline-flex;
+  gap: 1px;
+  align-items: center;
+}
+.history-item-stars svg {
+  width: 12px; height: 12px;
+}
+.history-item-stars .filled { color: var(--star-gold); }
+.history-item-stars .empty { color: #475569; }
+.history-item .delete-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+.history-item .delete-btn:hover { background: rgba(220,38,38,0.2); color: var(--error); }
+.sidebar-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.sidebar-footer .usage-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.sidebar-footer .usage-badge .count {
+  color: var(--accent);
+  font-weight: 600;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* ─── Navigation ─── */
+nav.top-nav {
+  position: sticky;
+  top: 0;
+  height: var(--nav-height);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  z-index: 20;
+}
+.nav-left { display: flex; align-items: center; gap: 0.75rem; }
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+}
+.nav-brand {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--primary);
+}
+.nav-right { display: flex; align-items: center; gap: 1rem; }
+.nav-usage {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.nav-usage .count {
+  font-weight: 700;
+  color: var(--accent);
+}
+.nav-email {
+  font-size: 0.8rem;
+  color: var(--muted);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-logout {
+  background: none;
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-btn);
+  font-size: 0.75rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.nav-logout:hover { border-color: var(--error); color: var(--error); }
+
+/* ─── Main Content ─── */
+main.main-content {
+  flex: 1;
+  padding: 2rem;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ─── Upload Zone ─── */
+.upload-zone { margin-bottom: 2rem; }
+.drop-area {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 3rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  background: var(--surface);
+}
+.drop-area:hover, .drop-area.drag-over { border-color: var(--accent); background: #f8faff; }
+.drop-area svg {
+  width: 40px; height: 40px;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+.drop-area p { font-size: 0.95rem; color: var(--primary); }
+.drop-area .sub { font-size: 0.8rem; color: var(--muted); margin-top: 0.35rem; }
+.file-info {
+  display: none;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.file-name { font-size: 0.9rem; font-weight: 500; color: var(--primary); }
+.file-size { font-size: 0.8rem; color: var(--muted); margin-left: 0.5rem; }
+.analyze-btn {
+  margin-top: 1rem;
+  padding: 0.7rem 2.5rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.analyze-btn:hover { background: #1a2744; transform: translateY(-1px); }
+.analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ─── Loading / Streaming ─── */
+.loading-section { text-align: center; padding: 1rem 0 2rem; }
+.loading-header { margin-bottom: 1.5rem; }
+.loading-filename { font-size: 0.85rem; color: var(--muted); margin-bottom: 1rem; }
+.spinner {
+  display: inline-block;
+  width: 32px; height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 0.75rem;
+}
+.loading-text { font-size: 0.95rem; color: var(--primary); }
+
+/* ─── Skeleton Cards ─── */
+.skeleton-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+}
+.skeleton-header {
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.skeleton-line {
+  height: 14px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+  border-radius: 4px;
+}
+.skeleton-line.title { width: 35%; height: 18px; }
+.skeleton-line.stars { width: 30%; height: 16px; }
+.skeleton-body { padding: 1.25rem 1.5rem 1.5rem; }
+.skeleton-body .skeleton-line { margin-bottom: 0.6rem; }
+.skeleton-body .skeleton-line:last-child { width: 60%; }
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Dimension Cards ─── */
+.dim-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(16px);
+  animation: cardFadeIn 0.5s ease forwards;
+}
+@keyframes cardFadeIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+.dim-header {
+  padding: 1.25rem 1.5rem 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.dim-title { font-size: 1rem; font-weight: 700; color: var(--primary); }
+.dim-stars { display: inline-flex; gap: 2px; align-items: center; }
+.dim-stars svg { width: 16px; height: 16px; }
+.dim-stars .filled { color: var(--star-gold); }
+.dim-stars .empty { color: var(--border); }
+.dim-body { padding: 1rem 1.5rem 1.25rem; }
+
+.dim-conclusion {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-input) var(--radius-input) 0;
+  padding: 0.85rem 1rem;
+  font-style: italic;
+  font-size: 0.9rem;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.dim-section { margin-top: 0.85rem; }
+.dim-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: 0.45rem;
+}
+.dim-suggestions { list-style: none; padding: 0; }
+.dim-suggestions li {
+  position: relative;
+  padding: 0.35rem 0 0.35rem 1.1rem;
+  font-size: 0.85rem;
+  color: var(--primary);
+  line-height: 1.5;
+}
+.dim-suggestions li::before {
+  content: '\2022';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.dim-quote {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border-left: 3px solid var(--muted);
+  border-radius: 0 var(--radius-input) var(--radius-input) 0;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--dark-surface);
+}
+
+.dim-optimized {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: var(--success-bg);
+  border-left: 3px solid #22c55e;
+  border-radius: 0 var(--radius-input) var(--radius-input) 0;
+  font-size: 0.85rem;
+  color: #166534;
+}
+
+.dim-logic {
+  margin-top: 0.85rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ─── Error & Limit States ─── */
+.error-box {
+  padding: 1rem 1.25rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  color: #991b1b;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.error-box svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; color: var(--error); }
+.retry-btn {
+  padding: 0.5rem 1.25rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.retry-btn:hover { background: #1a2744; }
+
+/* ─── Mobile Pages ─── */
+.mobile-pages { display: none; }
+.mobile-page { display: none; }
+.mobile-page.active { display: block; }
+.mobile-page-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+  margin-bottom: 1rem;
+}
+.mobile-back {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+}
+.mobile-page-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+/* ─── Bottom Nav ─── */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 50;
+  padding: 0 1rem;
+}
+.bottom-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0.35rem 1rem;
+  transition: color 0.15s;
+  font-family: inherit;
+}
+.bottom-nav-item.active { color: var(--accent); }
+.bottom-nav-item svg { width: 22px; height: 22px; }
+
+/* ─── Sidebar Backdrop (Tablet) ─── */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 35;
+}
+
+/* ─── Animations ─── */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Utility ─── */
+.hidden { display: none !important; }
+
+/* ─── Tablet (640-1023px) ─── */
+@media (max-width: 1023px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-close { display: block; }
+  .main-wrapper { margin-left: 0; }
+  .hamburger { display: block; }
+  .sidebar-backdrop.open { display: block; }
+}
+
+/* ─── Mobile (<640px) ─── */
+@media (max-width: 639px) {
+  :root { --nav-height: 52px; }
+  nav.top-nav { padding: 0 1.15rem; }
+  .nav-email { display: none; }
+  .nav-usage { font-size: 0.75rem; }
+  .nav-logout { display: none; }
+  main.main-content { padding: 1.15rem 1.15rem 2.5rem; }
+  .drop-area { padding: 2rem 1rem; }
+  .drop-area svg { width: 32px; height: 32px; }
+  .drop-area p { font-size: 0.85rem; }
+  .dim-header { padding: 1rem 1.15rem 0.65rem; }
+  .dim-body { padding: 0.85rem 1.15rem 1rem; }
+  .dim-title { font-size: 0.9rem; }
+  .dim-stars svg { width: 14px; height: 14px; }
+  .mobile-pages { display: block; }
+  .bottom-nav { display: block; }
+  main.main-content { padding-bottom: calc(2.5rem + 60px); }
+}
+
+/* ─── Desktop Only (>=1024px) ─── */
+@media (min-width: 1024px) {
+  .sidebar-close { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── State 1: Auth Screen ─── -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-content">
+    <h1>AI 履歷分析</h1>
+    <p>上傳你的 PDF 履歷，取得 AI 專業建議</p>
+    <button class="google-btn" onclick="login()">
+      <svg viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      使用 Google 登入
+    </button>
+  </div>
+</div>
+
+<!-- ─── App ─── -->
+<div class="app" id="app" style="display:none">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">AI 履歷分析</div>
+      <button class="sidebar-close" id="sidebarClose" onclick="toggleSidebar(false)" aria-label="關閉側欄">&#10005;</button>
+    </div>
+    <button class="upload-new-btn" onclick="showUpload()">上傳新履歷</button>
+    <div class="sidebar-section-label">分析記錄</div>
+    <div class="sidebar-history" id="historyList">
+      <div class="history-empty" id="historyEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <div>尚無分析記錄</div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="usage-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>本週剩餘 <span class="count" id="sidebarUsage">7</span> 次</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Wrapper -->
+  <div class="main-wrapper">
+    <!-- Top Nav -->
+    <nav class="top-nav">
+      <div class="nav-left">
+        <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar(true)" aria-label="選單">&#9776;</button>
+        <div class="nav-brand">AI 履歷分析</div>
+      </div>
+      <div class="nav-right">
+        <div class="nav-usage">
+          使用 <span class="count" id="navUsage">7</span>/7
+        </div>
+        <span class="nav-email" id="navEmail"></span>
+        <button class="nav-logout" onclick="logout()">登出</button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+
+      <!-- Upload Section (desktop/tablet) -->
+      <div id="desktopUpload">
+        <div class="upload-zone" id="uploadZone">
+          <div class="drop-area" id="dropArea">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p>拖曳 PDF 至此處或點擊上傳</p>
+            <p class="sub">支援 PDF 格式，上限 10MB</p>
+            <input type="file" id="fileInput" accept=".pdf" hidden>
+            <div class="file-info" id="fileInfo">
+              <span class="file-name" id="fileName"></span>
+              <span class="file-size" id="fileSize"></span>
+            </div>
+          </div>
+          <button class="analyze-btn" id="analyzeBtn" style="display:none">開始分析</button>
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading-section" id="loadingSection" style="display:none">
+          <div class="loading-header">
+            <div class="loading-filename" id="loadingFileName"></div>
+            <div class="spinner"></div>
+            <div class="loading-text">AI 分析中...</div>
+          </div>
+          <div id="skeletonContainer"></div>
+        </div>
+
+        <!-- Results Container -->
+        <div id="resultsSection" style="display:none">
+          <div id="resultsContainer"></div>
+        </div>
+
+        <!-- State 5: Limit Exhausted -->
+        <div id="limitError" style="display:none">
+          <div class="error-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <div>
+              <div style="font-weight:600;margin-bottom:0.25rem">本週已達 7 次使用上限</div>
+              <div style="font-size:0.85rem">請下週再試，你的使用次數將於每週一重置</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- State 6: Non-Resume Error -->
+        <div id="parseError" style="display:none">
+          <div class="error-box" id="parseErrorMsg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <div id="parseErrorText"></div>
+            </div>
+          </div>
+          <button class="retry-btn" onclick="clearParseError()">重新選擇檔案</button>
+        </div>
+      </div>
+
+      <!-- Mobile: Detail Page (rendered here) -->
+      <div id="mobileDetail" style="display:none"></div>
+    </main>
+
+    <!-- Mobile Pages -->
+    <div class="mobile-pages" id="mobilePages">
+      <div class="mobile-page" id="mobilePageHistory">
+        <div class="mobile-page-header">
+          <div class="mobile-page-title">分析記錄</div>
+        </div>
+        <div id="mobileHistoryList"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Nav (Mobile) -->
+    <nav class="bottom-nav" id="bottomNav">
+      <div class="bottom-nav-inner">
+        <button class="bottom-nav-item active" id="bottomUpload" onclick="switchMobileTab('upload')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>分析</span>
+        </button>
+        <button class="bottom-nav-item" id="bottomHistory" onclick="switchMobileTab('history')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span>歷史記錄</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+</div>
+
+<!-- Sidebar Backdrop -->
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
+<script>
+/* ===== State ===== */
+const API = '';
+const DIM_NAMES = {
+  overall_structure: '整體結構',
+  personal_brand: '個人品牌',
+  star_impact: 'STAR 成果',
+  language_quality: '語言表達',
+  ats_keywords: 'ATS 關鍵字'
+};
+let currentToken = localStorage.getItem('token');
+let currentFile = null;
+let currentUsage = 7;
+let currentAnalysisId = null;
+let historyCache = [];
+let userEmail = '';
+
+/* ===== Auth ===== */
+function login() { window.location.href = API + '/auth/login'; }
+function logout() {
+  localStorage.removeItem('token');
+  currentToken = null;
+  userEmail = '';
+  showAuth();
+}
+function getTokenFromUrl() {
+  const p = new URLSearchParams(window.location.search);
+  const t = p.get('token');
+  if (t) {
+    localStorage.setItem('token', t);
+    window.history.replaceState({}, document.title, window.location.pathname);
+    return t;
+  }
+  return null;
+}
+async function checkAuth() {
+  const urlToken = getTokenFromUrl();
+  if (urlToken) currentToken = urlToken;
+  if (!currentToken) { showAuth(); return; }
+  try {
+    const resp = await fetch(API + '/auth/me', { headers: { Authorization: 'Bearer ' + currentToken } });
+    if (!resp.ok) { showAuth(); return; }
+    const data = await resp.json();
+    userEmail = data.email || data.name || '';
+    showApp();
+    loadHistory();
+  } catch { showAuth(); }
+}
+function showAuth() {
+  document.getElementById('authScreen').style.display = '';
+  document.getElementById('app').style.display = 'none';
+}
+function showApp() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('navEmail').textContent = userEmail;
+  updateUsage();
+}
+
+/* ===== UI: Upload ===== */
+const dropArea = document.getElementById('dropArea');
+const fileInput = document.getElementById('fileInput');
+const fileInfo = document.getElementById('fileInfo');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const uploadZone = document.getElementById('uploadZone');
+const loadingSection = document.getElementById('loadingSection');
+const resultsSection = document.getElementById('resultsSection');
+const resultsContainer = document.getElementById('resultsContainer');
+const skeletonContainer = document.getElementById('skeletonContainer');
+const limitError = document.getElementById('limitError');
+const parseError = document.getElementById('parseError');
+const parseErrorText = document.getElementById('parseErrorText');
+const loadingFileName = document.getElementById('loadingFileName');
+
+dropArea.addEventListener('click', () => fileInput.click());
+dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('drag-over'); });
+dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag-over'));
+dropArea.addEventListener('drop', e => {
+  e.preventDefault();
+  dropArea.classList.remove('drag-over');
+  if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length > 0) handleFile(e.target.files[0]);
+});
+
+function handleFile(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) { showError('請上傳 PDF 格式檔案'); return; }
+  if (file.size > 10 * 1024 * 1024) { showError('檔案超過 10MB，請壓縮後再上傳'); return; }
+  currentFile = file;
+  fileName.textContent = file.name;
+  fileSize.textContent = formatSize(file.size);
+  fileInfo.style.display = 'block';
+  analyzeBtn.style.display = 'inline-block';
+  analyzeBtn.disabled = false;
+  hideErrors();
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
+}
+
+function showError(msg) {
+  const box = document.createElement('div');
+  box.className = 'error-box';
+  box.id = 'tempError';
+  box.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div>' + escapeHtml(msg) + '</div>';
+  const existing = document.getElementById('tempError');
+  if (existing) existing.remove();
+  uploadZone.parentElement.insertBefore(box, uploadZone);
+}
+function hideErrors() {
+  const e = document.getElementById('tempError');
+  if (e) e.remove();
+}
+
+/* ===== UI: Analyze ===== */
+analyzeBtn.addEventListener('click', uploadAndAnalyze);
+
+async function uploadAndAnalyze() {
+  if (!currentFile || !currentToken) return;
+  if (currentUsage <= 0) { showLimit(); return; }
+
+  analyzeBtn.disabled = true;
+  analyzeBtn.textContent = '分析中...';
+  uploadZone.style.display = 'none';
+  resultsSection.style.display = 'none';
+  limitError.style.display = 'none';
+  parseError.style.display = 'none';
+  hideErrors();
+  loadingFileName.textContent = currentFile.name;
+  showSkeletons(5);
+  loadingSection.style.display = '';
+
+  const formData = new FormData();
+  formData.append('pdf_file', currentFile);
+
+  try {
+    const resp = await fetch(API + '/analyze', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + currentToken },
+      body: formData
+    });
+
+    if (!resp.ok) {
+      let detail = '分析失敗，請重試';
+      try { const err = await resp.json(); detail = err.detail || detail; } catch {}
+      if (resp.status === 400) {
+        showParseError(detail);
+      } else if (resp.status === 429) {
+        showLimit();
+      } else {
+        showError(detail);
+        loadingSection.style.display = 'none';
+        uploadZone.style.display = '';
+      }
+      resetButton();
+      return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let dimIndex = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6).trim();
+        if (!jsonStr) continue;
+        try {
+          const event = JSON.parse(jsonStr);
+          handleSSEEvent(event, dimIndex);
+          if (event.type === 'dimension') dimIndex++;
+        } catch {}
+      }
+    }
+    loadingSection.style.display = 'none';
+    resetButton();
+  } catch (err) {
+    showError('網路連線異常，請檢查後重試');
+    loadingSection.style.display = 'none';
+    uploadZone.style.display = '';
+    resetButton();
+  }
+}
+
+function resetButton() {
+  analyzeBtn.disabled = false;
+  analyzeBtn.textContent = '開始分析';
+}
+
+function showLimit() {
+  uploadZone.style.display = 'none';
+  loadingSection.style.display = 'none';
+  resultsSection.style.display = 'none';
+  parseError.style.display = 'none';
+  limitError.style.display = '';
+}
+
+function showParseError(msg) {
+  loadingSection.style.display = 'none';
+  uploadZone.style.display = 'none';
+  resultsSection.style.display = 'none';
+  limitError.style.display = 'none';
+  parseErrorText.textContent = msg;
+  parseError.style.display = '';
+}
+
+function clearParseError() {
+  parseError.style.display = 'none';
+  uploadZone.style.display = '';
+  currentFile = null;
+  fileInfo.style.display = 'none';
+  analyzeBtn.style.display = 'none';
+  fileInput.value = '';
+}
+
+function showUpload() {
+  uploadZone.style.display = '';
+  loadingSection.style.display = 'none';
+  resultsSection.style.display = 'none';
+  limitError.style.display = 'none';
+  parseError.style.display = 'none';
+  currentAnalysisId = null;
+  deselectHistory();
+  document.getElementById('mobileDetail').style.display = 'none';
+  document.getElementById('desktopUpload').style.display = '';
+  if (window.innerWidth < 640) switchMobileTab('upload');
+  if (window.innerWidth >= 1024) return;
+  toggleSidebar(false);
+}
+
+/* ===== SSE ===== */
+function handleSSEEvent(event, index) {
+  switch (event.type) {
+    case 'dimension':
+      addDimensionCard(event, index);
+      break;
+    case 'done':
+      currentUsage = Math.max(0, currentUsage - 1);
+      updateUsage();
+      loadingSection.style.display = 'none';
+      resultsSection.style.display = '';
+      if (historyCache.length > 0) {
+        const scores = Array.from(document.querySelectorAll('.dim-stars')).map(el => {
+          return el.querySelectorAll('.filled').length;
+        });
+        const avg = scores.length > 0 ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+        const latest = historyCache[0];
+        if (latest) latest.avg_score = avg;
+      }
+      loadHistory();
+      resetButton();
+      break;
+    case 'error':
+      showError(event.message || '分析過程發生錯誤');
+      loadingSection.style.display = 'none';
+      uploadZone.style.display = '';
+      resetButton();
+      break;
+  }
+}
+
+function showSkeletons(count) {
+  skeletonContainer.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const sk = document.createElement('div');
+    sk.className = 'skeleton-card';
+    sk.dataset.index = i;
+    sk.innerHTML =
+      '<div class="skeleton-header">' +
+        '<div class="skeleton-line title"></div>' +
+        '<div class="skeleton-line stars"></div>' +
+      '</div>' +
+      '<div class="skeleton-body">' +
+        '<div class="skeleton-line"></div>' +
+        '<div class="skeleton-line"></div>' +
+        '<div class="skeleton-line"></div>' +
+        '<div class="skeleton-line"></div>' +
+      '</div>';
+    skeletonContainer.appendChild(sk);
+  }
+}
+
+function addDimensionCard(data, index) {
+  const skeleton = skeletonContainer.querySelector(`[data-index="${index}"]`);
+  const chineseName = DIM_NAMES[data.name] || data.name;
+  const starsHtml = renderStars(data.score);
+
+  let html = '<div class="dim-card">' +
+    '<div class="dim-header">' +
+      '<div class="dim-title">' + escapeHtml(chineseName) + '</div>' +
+      '<div class="dim-stars">' + starsHtml + '</div>' +
+    '</div>' +
+    '<div class="dim-body">';
+
+  if (data.conclusion) {
+    html += '<div class="dim-conclusion">' + escapeHtml(data.conclusion) + '</div>';
+  }
+
+  if (data.suggestions && data.suggestions.length > 0) {
+    html += '<div class="dim-section"><div class="dim-section-label">改善建議</div><ul class="dim-suggestions">';
+    data.suggestions.forEach(s => { html += '<li>' + escapeHtml(s) + '</li>'; });
+    html += '</ul></div>';
+  }
+
+  if (data.quote) {
+    html += '<div class="dim-quote"><div class="dim-section-label">原文引述</div>' + escapeHtml(data.quote) + '</div>';
+  }
+
+  if (data.optimized) {
+    html += '<div class="dim-optimized"><div class="dim-section-label">優化版本</div>' + escapeHtml(data.optimized) + '</div>';
+  }
+
+  if (data.optimization_logic) {
+    html += '<div class="dim-logic"><div class="dim-section-label">優化邏輯</div>' + escapeHtml(data.optimization_logic) + '</div>';
+  }
+
+  html += '</div></div>';
+
+  if (skeleton) {
+    skeleton.remove();
+  }
+  resultsContainer.insertAdjacentHTML('beforeend', html);
+
+  resultsSection.style.display = '';
+}
+
+function renderStars(score) {
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    const cls = i <= score ? 'filled' : 'empty';
+    html += '<svg class="' + cls + '" viewBox="0 0 20 20" width="16" height="16"><path d="M10 1l2.39 4.84 5.34.78-3.86 3.76.91 5.32L10 13.27l-4.78 2.51.91-5.32L2.27 6.62l5.34-.78z" fill="currentColor"/></svg>';
+  }
+  return html;
+}
+
+/* ===== History ===== */
+async function loadHistory() {
+  if (!currentToken) return;
+  try {
+    const resp = await fetch(API + '/api/analyses', {
+      headers: { Authorization: 'Bearer ' + currentToken }
+    });
+    if (!resp.ok) return;
+    historyCache = await resp.json();
+  } catch { historyCache = []; }
+
+  renderHistorySidebar();
+  renderMobileHistory();
+}
+
+function renderHistorySidebar() {
+  const list = document.getElementById('historyList');
+  const empty = document.getElementById('historyEmpty');
+
+  if (!historyCache || historyCache.length === 0) {
+    list.innerHTML = '<div class="history-empty">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+      '<div>尚無分析記錄</div></div>';
+    return;
+  }
+
+  list.innerHTML = historyCache.map(item => {
+    const stars = renderSmallStars(item.avg_score || 0);
+    const date = item.uploaded_at ? formatDate(item.uploaded_at) : '';
+    const selected = currentAnalysisId === item.id ? ' selected' : '';
+    return '<div class="history-item' + selected + '" data-id="' + item.id + '" onclick="loadAnalysis(' + item.id + ')">' +
+      '<div class="history-item-name">' + escapeHtml(item.filename || '未知檔案') + '</div>' +
+      '<div class="history-item-meta">' +
+        '<span>' + date + '</span>' +
+        '<span class="history-item-stars">' + stars + '</span>' +
+        '<button class="delete-btn" onclick="event.stopPropagation();deleteAnalysis(' + item.id + ')" title="刪除">刪除</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function renderMobileHistory() {
+  const container = document.getElementById('mobileHistoryList');
+  if (!historyCache || historyCache.length === 0) {
+    container.innerHTML = '<div class="history-empty">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+      '<div>尚無分析記錄</div></div>';
+    return;
+  }
+  container.innerHTML = historyCache.map(item => {
+    const stars = renderSmallStars(item.avg_score || 0);
+    const date = item.uploaded_at ? formatDate(item.uploaded_at) : '';
+    return '<div class="history-item" data-id="' + item.id + '" onclick="loadAnalysisMobile(' + item.id + ')">' +
+      '<div class="history-item-name">' + escapeHtml(item.filename || '未知檔案') + '</div>' +
+      '<div class="history-item-meta">' +
+        '<span>' + date + '</span>' +
+        '<span class="history-item-stars">' + stars + '</span>' +
+      '</div></div>';
+  }).join('');
+}
+
+function renderSmallStars(score) {
+  const s = Math.round(score);
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    html += '<svg class="' + (i <= s ? 'filled' : 'empty') + '" viewBox="0 0 20 20" width="12" height="12"><path d="M10 1l2.39 4.84 5.34.78-3.86 3.76.91 5.32L10 13.27l-4.78 2.51.91-5.32L2.27 6.62l5.34-.78z" fill="currentColor"/></svg>';
+  }
+  return html;
+}
+
+function formatDate(dateStr) {
+  try {
+    const d = new Date(dateStr);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return mm + '/' + dd;
+  } catch { return ''; }
+}
+
+function deselectHistory() {
+  document.querySelectorAll('.history-item.selected').forEach(el => el.classList.remove('selected'));
+}
+
+async function loadAnalysis(id) {
+  if (!currentToken) return;
+  currentAnalysisId = id;
+  deselectHistory();
+  const item = document.querySelector('.history-item[data-id="' + id + '"]');
+  if (item) item.classList.add('selected');
+
+  try {
+    const resp = await fetch(API + '/api/analyses/' + id, {
+      headers: { Authorization: 'Bearer ' + currentToken }
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    if (window.innerWidth < 640) {
+      showMobileDetail(data);
+      return;
+    }
+
+    document.getElementById('desktopUpload').style.display = 'none';
+    document.getElementById('mobileDetail').style.display = 'none';
+    resultsSection.style.display = '';
+    resultsContainer.innerHTML = '';
+    uploadZone.style.display = 'none';
+    loadingSection.style.display = 'none';
+    limitError.style.display = 'none';
+    parseError.style.display = 'none';
+
+    if (data.dimensions && data.dimensions.length > 0) {
+      data.dimensions.forEach((dim, i) => {
+        addDimensionCard(dim, i);
+      });
+    }
+
+    const backBtn = document.createElement('div');
+    backBtn.style.marginBottom = '1rem';
+    backBtn.innerHTML = '<button class="retry-btn" onclick="showUpload()" style="background:none;border:1px solid var(--border);color:var(--primary)">&#8592; 上傳新履歷</button>';
+    resultsContainer.insertBefore(backBtn, resultsContainer.firstChild);
+
+    if (window.innerWidth >= 1024) return;
+    toggleSidebar(false);
+  } catch {}
+}
+
+function loadAnalysisMobile(id) {
+  loadAnalysis(id);
+}
+
+function showMobileDetail(data) {
+  document.getElementById('desktopUpload').style.display = 'none';
+  const detail = document.getElementById('mobileDetail');
+  detail.style.display = '';
+
+  let html = '<div class="mobile-page-header">' +
+    '<button class="mobile-back" onclick="closeMobileDetail()">&#8592;</button>' +
+    '<div class="mobile-page-title">' + escapeHtml(data.filename || '分析詳情') + '</div>' +
+  '</div>';
+
+  if (data.dimensions && data.dimensions.length > 0) {
+    data.dimensions.forEach((dim, i) => {
+      const chineseName = DIM_NAMES[dim.name] || dim.name;
+      const starsHtml = renderStars(dim.score);
+      html += '<div class="dim-card" style="opacity:1;transform:none;animation:none">' +
+        '<div class="dim-header">' +
+          '<div class="dim-title">' + escapeHtml(chineseName) + '</div>' +
+          '<div class="dim-stars">' + starsHtml + '</div>' +
+        '</div>' +
+        '<div class="dim-body">';
+
+      if (dim.conclusion) {
+        html += '<div class="dim-conclusion">' + escapeHtml(dim.conclusion) + '</div>';
+      }
+      if (dim.suggestions && dim.suggestions.length > 0) {
+        html += '<div class="dim-section"><div class="dim-section-label">改善建議</div><ul class="dim-suggestions">';
+        dim.suggestions.forEach(s => { html += '<li>' + escapeHtml(s) + '</li>'; });
+        html += '</ul></div>';
+      }
+      if (dim.quote) {
+        html += '<div class="dim-quote"><div class="dim-section-label">原文引述</div>' + escapeHtml(dim.quote) + '</div>';
+      }
+      if (dim.optimized) {
+        html += '<div class="dim-optimized"><div class="dim-section-label">優化版本</div>' + escapeHtml(dim.optimized) + '</div>';
+      }
+      if (dim.optimization_logic) {
+        html += '<div class="dim-logic"><div class="dim-section-label">優化邏輯</div>' + escapeHtml(dim.optimization_logic) + '</div>';
+      }
+
+      html += '</div></div>';
+    });
+  }
+
+  detail.innerHTML = html;
+}
+
+function closeMobileDetail() {
+  document.getElementById('mobileDetail').style.display = 'none';
+  document.getElementById('desktopUpload').style.display = '';
+  if (window.innerWidth < 640) {
+    switchMobileTab('history');
+  }
+}
+
+async function deleteAnalysis(id) {
+  if (!currentToken) return;
+  if (!confirm('確定刪除此分析記錄？')) return;
+  try {
+    const resp = await fetch(API + '/api/analyses/' + id, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + currentToken }
+    });
+    if (!resp.ok) return;
+    if (currentAnalysisId === id) { showUpload(); }
+    loadHistory();
+  } catch {}
+}
+
+/* ===== Sidebar ===== */
+function toggleSidebar(show) {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (show) {
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+  } else {
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+}
+
+/* ===== Mobile ===== */
+function switchMobileTab(tab) {
+  document.getElementById('bottomUpload').classList.toggle('active', tab === 'upload');
+  document.getElementById('bottomHistory').classList.toggle('active', tab === 'history');
+  document.getElementById('mobilePageHistory').classList.toggle('active', tab === 'history');
+  document.getElementById('desktopUpload').style.display = tab === 'upload' ? '' : 'none';
+  document.getElementById('mobileDetail').style.display = 'none';
+  if (tab === 'history') {
+    renderMobileHistory();
+  }
+}
+
+/* ===== Usage ===== */
+function updateUsage() {
+  document.getElementById('sidebarUsage').textContent = currentUsage;
+  document.getElementById('navUsage').textContent = currentUsage;
+}
+
+/* ===== Helpers ===== */
+function escapeHtml(str) {
+  if (!str) return '';
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ===== Init ===== */
+checkAuth();
+</script>
+</body>
+</html>

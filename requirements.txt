@@ -1,0 +1,6 @@
+fastapi>=0.135.0
+uvicorn[standard]
+pdfminer.six
+openai>=1.0.0
+python-multipart
+asyncpg>=0.30.0
