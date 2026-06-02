@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.sse import EventSourceResponse
 
 from backend.pdf_parser import parse_resume, ai_preprocess_text
@@ -43,6 +43,17 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+@app.get("/auth/login")
+async def auth_login():
+    return RedirectResponse(url="/?token=mock-token")
+
+@app.get("/auth/me")
+async def auth_me(request: Request):
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        return {"email": "user@example.com", "name": "User"}
+    raise HTTPException(401, "Unauthorized")
 
 @app.get("/health")
 async def health():
