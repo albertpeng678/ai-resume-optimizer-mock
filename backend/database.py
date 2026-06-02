@@ -49,9 +49,10 @@ async def init_db(pool: asyncpg.Pool):
     """)
 
 async def create_analysis(pool: asyncpg.Pool, user_id: str, filename: str, file_size: int, dimensions: list) -> UUID:
+    import json
     row = await pool.fetchrow(
         "INSERT INTO analyses (user_id, filename, file_size, dimensions) VALUES ($1, $2, $3, $4::jsonb) RETURNING id",
-        user_id, filename, file_size, dimensions,
+        user_id, filename, file_size, json.dumps(dimensions),
     )
     return row["id"]
 
