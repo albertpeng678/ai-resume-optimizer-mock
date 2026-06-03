@@ -124,6 +124,44 @@ class TestStreamAnalysis:
         assert done_count == 1, f"Expected 1 done event, got {done_count}. The AI's done line + hardcoded yield at line 152 produces a duplicate."
 
     @pytest.mark.asyncio
+    async def test_stream_extracts_dims_without_newlines(self):
+        """Regression: when AI outputs JSON objects concatenated without newlines
+        (e.g. all dims in a single chunk), stream_analysis must still extract all 5.
+        Previously this produced dimensions: [] in the saved analysis."""
+        all_dims = []
+        for d in MOCK_DIMENSIONS:
+            all_dims.append(d)
+        all_json = "".join(json.dumps(d, ensure_ascii=False) for d in all_dims) + json.dumps({"type": "done"})
+
+        chunks = []
+        chunk_size = 50
+        for i in range(0, len(all_json), chunk_size):
+            c = MagicMock()
+            c.choices = [MagicMock()]
+            c.choices[0].delta.content = all_json[i:i+chunk_size]
+            chunks.append(c)
+
+        mock_stream = AsyncMock()
+        mock_stream.__aiter__.return_value = iter(chunks)
+
+        with patch(
+            "backend.analyzer._client.chat.completions.create",
+            new_callable=AsyncMock,
+            return_value=mock_stream,
+        ):
+            dim_count = 0
+            done_count = 0
+            async for chunk in stream_analysis("Test resume"):
+                data = json.loads(chunk)
+                if data["type"] == "dimension":
+                    dim_count += 1
+                elif data["type"] == "done":
+                    done_count += 1
+
+        assert dim_count == 5, f"Expected 5 dimensions, got {dim_count}"
+        assert done_count == 1, f"Expected 1 done, got {done_count}"
+
+    @pytest.mark.asyncio
     async def test_dimension_contains_new_fields(self, mock_openai_stream):
         with mock_openai_stream:
             async for chunk in stream_analysis("Test resume"):

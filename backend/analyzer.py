@@ -134,30 +134,15 @@ async def stream_analysis(
             content = delta.content if delta else ""
             if content:
                 buffer += content
-                while "\n" in buffer:
-                    line, buffer = buffer.split("\n", 1)
-                    line = line.strip()
-                    if not line or not line.startswith("{"):
-                        continue
-                    try:
-                        obj = json.loads(line)
-                    except json.JSONDecodeError:
-                        yield line
-                        continue
-                    if obj.get("type") == "done":
-                        continue
-                    yield line
+                extracted, consumed = _extract_jsons(buffer)
+                for json_str in extracted:
+                    yield json_str
+                buffer = buffer[consumed:]
 
-        # Handle remaining buffer after stream ends
-        remaining = buffer.strip()
-        if remaining and remaining.startswith("{"):
-            try:
-                obj = json.loads(remaining)
-            except json.JSONDecodeError:
-                yield remaining
-            else:
-                if obj.get("type") != "done":
-                    yield remaining
+        # Handle any remaining complete JSON in the buffer after stream ends
+        extracted, _ = _extract_jsons(buffer)
+        for json_str in extracted:
+            yield json_str
 
     except (RateLimitError, APIConnectionError, APIStatusError) as e:
         code, msg = _classify_error(e)
@@ -165,6 +150,63 @@ async def stream_analysis(
         return
 
     yield json.dumps({"type": "done"})
+
+
+def _extract_jsons(text: str) -> tuple[list[str], int]:
+    """Extract complete JSON objects from text by tracking brace depth.
+    
+    Returns (extracted_jsons, consumed_count) where consumed_count is how many
+    characters of text were successfully parsed. Remaining text should be kept
+    in the buffer for the next chunk.
+    
+    Handles:
+    - Newline-separated JSON objects (current working case)
+    - JSON objects concatenated without newlines
+    - Newlines within JSON string values
+    - Escaped quotes within strings
+    """
+    result = []
+    i = 0
+    last_complete = 0
+    while i < len(text):
+        if text[i] == "{":
+            depth = 0
+            j = i
+            while j < len(text):
+                if text[j] == '"':
+                    j += 1
+                    while j < len(text):
+                        if text[j] == "\\":
+                            j += 2
+                        elif text[j] == '"':
+                            break
+                        else:
+                            j += 1
+                elif text[j] == "{":
+                    depth += 1
+                elif text[j] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        candidate = text[i:j+1]
+                        try:
+                            obj = json.loads(candidate)
+                        except json.JSONDecodeError:
+                            last_complete = i
+                            i = j + 1
+                            break
+                        if obj.get("type") != "done":
+                            result.append(candidate)
+                        last_complete = j + 1
+                        i = j + 1
+                        break
+                j += 1
+            else:
+                # No complete object from position i - keep everything from i
+                return result, i
+        else:
+            i += 1
+            last_complete = i
+    return result, last_complete
 
 
 def _classify_error(e: Exception) -> tuple[str, str]:
