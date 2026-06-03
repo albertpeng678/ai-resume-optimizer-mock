@@ -39,7 +39,7 @@ def get_client() -> AsyncOpenAI:
 SYSTEM_PROMPT = """你是一個資深台灣招募顧問。請分析這份履歷，依序輸出 5 個維度的分析結果。
 
 每個維度嚴格遵守以下 JSON 格式，每個維度一行：
-{"type":"dimension","name":"<name>","score":<1-5>,"conclusion":"<一句話結論（繁體中文）>","suggestions":["<建議1>","<建議2>","<建議3>"],"quote":"<從履歷中摘取的具體段落原文>","optimized":"<直接改寫後的建議寫法>","optimization_logic":"<解釋為什麼這樣改更好（台灣繁體中文）>"}
+{"type":"dimension","name":"<name>","score":<1-5>,"conclusion":"<一句話結論（繁體中文）>","suggestions":["<建議1>","<建議2>","<建議3>"],"quote":"<從履歷中摘取的具體段落原文>","optimized":"<直接改寫後的建議寫法，使用 Markdown 清單格式（每行以 - 開頭）>","optimization_logic":"<解釋為什麼這樣改更好（台灣繁體中文）>"}
 
 5 個維度依序為：
 1. experience_relevance — 經歷與目標職位的方向匹配度、量化成果

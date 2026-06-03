@@ -471,6 +471,18 @@ main.main-content {
   font-size: 0.85rem;
   color: #166534;
 }
+.dim-optimized ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+.dim-optimized li {
+  margin-bottom: 0.35rem;
+  line-height: 1.5;
+}
+.dim-optimized li:last-child {
+  margin-bottom: 0;
+}
 
 .dim-logic {
   margin-top: 0.85rem;
@@ -626,6 +638,8 @@ main.main-content {
   .sidebar-close { display: none !important; }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.4.6/purify.min.js"></script>
 </head>
 <body>
 
@@ -1105,7 +1119,7 @@ function addDimensionCard(data, index) {
   }
 
   if (data.optimized) {
-    html += '<div class="dim-optimized"><div class="dim-section-label">優化版本</div>' + escapeHtml(data.optimized) + '</div>';
+    html += '<div class="dim-optimized"><div class="dim-section-label">優化版本</div>' + DOMPurify.sanitize(marked.parse(data.optimized)) + '</div>';
   }
 
   if (data.optimization_logic) {
@@ -1342,7 +1356,7 @@ function showMobileDetail(data) {
         html += '<div class="dim-quote"><div class="dim-section-label">原文引述</div>' + escapeHtml(dim.quote) + '</div>';
       }
       if (dim.optimized) {
-        html += '<div class="dim-optimized"><div class="dim-section-label">優化版本</div>' + escapeHtml(dim.optimized) + '</div>';
+        html += '<div class="dim-optimized"><div class="dim-section-label">優化版本</div>' + DOMPurify.sanitize(marked.parse(dim.optimized)) + '</div>';
       }
       if (dim.optimization_logic) {
         html += '<div class="dim-logic"><div class="dim-section-label">優化邏輯</div>' + escapeHtml(dim.optimization_logic) + '</div>';
