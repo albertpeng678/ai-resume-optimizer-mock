@@ -90,6 +90,40 @@ class TestStreamAnalysis:
         }
 
     @pytest.mark.asyncio
+    async def test_stream_yields_done_exactly_once_when_ai_also_emits_done(self):
+        """Regression: when the AI response includes {"type":"done"} (as instructed
+        by the system prompt), stream_analysis MUST yield done exactly once.
+        Currently the hardcoded yield at line 152 duplicates the AI's own done line."""
+        chunks = []
+        for d in MOCK_DIMENSIONS:
+            line = json.dumps(d, ensure_ascii=False)
+            chunk = MagicMock()
+            chunk.choices = [MagicMock()]
+            chunk.choices[0].delta.content = line + "\n"
+            chunks.append(chunk)
+        # AI also outputs {"type":"done"} as instructed by system prompt
+        done_chunk = MagicMock()
+        done_chunk.choices = [MagicMock()]
+        done_chunk.choices[0].delta.content = json.dumps({"type": "done"}) + "\n"
+        chunks.append(done_chunk)
+
+        mock_stream = AsyncMock()
+        mock_stream.__aiter__.return_value = iter(chunks)
+
+        with patch(
+            "backend.analyzer._client.chat.completions.create",
+            new_callable=AsyncMock,
+            return_value=mock_stream,
+        ):
+            done_count = 0
+            async for chunk in stream_analysis("Test resume"):
+                data = json.loads(chunk)
+                if data["type"] == "done":
+                    done_count += 1
+
+        assert done_count == 1, f"Expected 1 done event, got {done_count}. The AI's done line + hardcoded yield at line 152 produces a duplicate."
+
+    @pytest.mark.asyncio
     async def test_dimension_contains_new_fields(self, mock_openai_stream):
         with mock_openai_stream:
             async for chunk in stream_analysis("Test resume"):
